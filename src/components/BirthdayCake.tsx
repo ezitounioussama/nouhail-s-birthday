@@ -544,7 +544,11 @@ function createSprinkles({
 }
 
 // Main component
-export default function BirthdayCake() {
+interface BirthdayCakeProps {
+  onBackToLanding?: () => void;
+}
+
+export default function BirthdayCake({ onBackToLanding }: BirthdayCakeProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [candlesLit, setCandlesLit] = useState(true);
   const [showBirthdayCard, setShowBirthdayCard] = useState(false);
@@ -1304,7 +1308,15 @@ export default function BirthdayCake() {
       {/* Birthday Card */}
       <BirthdayCard
         isVisible={showBirthdayCard}
-        onClose={() => setShowBirthdayCard(false)}
+        onClose={() => {
+          setShowBirthdayCard(false);
+          if (onBackToLanding) {
+            // Small delay to allow card to close gracefully
+            setTimeout(() => {
+              onBackToLanding();
+            }, 500);
+          }
+        }}
       />
     </>
   );

@@ -217,7 +217,7 @@ function App() {
               inset: 0,
             }}
           >
-            <BirthdayCake />
+            <BirthdayCake onBackToLanding={() => setShowCake(false)} />
           </motion.div>
         )}
 
