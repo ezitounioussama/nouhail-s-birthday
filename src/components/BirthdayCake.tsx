@@ -1,6 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { useBlowDetection } from "../hooks/useBlowDetection";
 // Text rendering removed per request; imports for FontLoader/TextGeometry have been deleted.
 
 // Utility: create a soft radial sprite texture (for candle flame/glow)
@@ -439,17 +440,34 @@ function createCandle({ height = 0.35, radius = 0.04, color = 0xfff1e6 }) {
   light.position.y = flame.position.y;
   candle.add(light);
 
-  // Flicker behavior
+  // Flicker behavior and lighting state
   const baseIntensity = light.intensity;
   const baseScale = flame.scale.clone();
-  const update = (t: number) => {
-    const n = (Math.sin(t * 7 + Math.random() * 100) + 1) * 0.5; // 0..1
-    light.intensity = baseIntensity * (0.85 + 0.3 * n);
-    flame.scale.set(
-      baseScale.x * (0.9 + 0.25 * n),
-      baseScale.y * (0.9 + 0.35 * n),
-      1
-    );
+  let isLit = true;
+  
+  const update = (t: number, lit: boolean = true) => {
+    // Simple blow-out functionality
+    if (lit !== isLit) {
+      isLit = lit;
+      flame.visible = lit;
+      light.visible = lit;
+      if (lit) {
+        // Reset to normal when relit
+        flame.scale.copy(baseScale);
+        light.intensity = baseIntensity;
+      }
+    }
+    
+    // Normal flicker animation when lit (original behavior)
+    if (isLit) {
+      const n = (Math.sin(t * 7 + Math.random() * 100) + 1) * 0.5; // 0..1
+      light.intensity = baseIntensity * (0.85 + 0.3 * n);
+      flame.scale.set(
+        baseScale.x * (0.9 + 0.25 * n),
+        baseScale.y * (0.9 + 0.35 * n),
+        1
+      );
+    }
   };
 
   return { group: candle, update };
@@ -527,6 +545,36 @@ function createSprinkles({
 // Main component
 export default function BirthdayCake() {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [candlesLit, setCandlesLit] = useState(true);
+  
+  // Blow detection hook
+  const { isBlowing, isCalibrating, startListening, stopListening, permissionGranted, requestPermission } = useBlowDetection();
+
+  // Effect to handle blowing on candles
+  useEffect(() => {
+    console.log('🕯️ Candle effect triggered:', { isBlowing, candlesLit });
+    if (isBlowing && candlesLit) {
+      console.log('💨 Blowing detected! Turning off candles...');
+      setCandlesLit(false);
+      
+      // Stop listening to microphone after successful blow
+      console.log('🎤 Stopping microphone listening...');
+      stopListening();
+      
+      // Relight candles after 5 seconds
+      setTimeout(() => {
+        console.log('🔥 Relighting candles...');
+        setCandlesLit(true);
+      }, 5000);
+    }
+  }, [isBlowing, candlesLit, stopListening]);
+
+  // Auto-start listening when permission is granted
+  useEffect(() => {
+    if (permissionGranted && candlesLit) {
+      startListening();
+    }
+  }, [permissionGranted, candlesLit, startListening]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -549,12 +597,14 @@ export default function BirthdayCake() {
       powerPreference: "high-performance",
       stencil: false,
       depth: true,
+      logarithmicDepthBuffer: false, // Ensure proper depth handling for sprites
     });
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
     renderer.shadowMap.enabled = !isMobile; // Disable shadows on mobile for performance
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.sortObjects = true; // Ensure proper rendering order for transparent objects
 
     const computeDPR = () => {
       const isNarrow = Math.min(window.innerWidth, window.innerHeight) < 768;
@@ -845,7 +895,9 @@ export default function BirthdayCake() {
     // Candles evenly placed on the top (reduced count on mobile)
     const candleCount = isMobile ? 6 : 8;
     const candleRadius = topRadius * 0.75;
-    const candleUpdaters: Array<(t: number) => void> = [];
+    const candleUpdaters: Array<(t: number, lit: boolean) => void> = [];
+    console.log(`Creating ${candleCount} candles...`);
+    
     for (let i = 0; i < candleCount; i++) {
       const angle = (i / candleCount) * Math.PI * 2;
       const cx = Math.cos(angle) * candleRadius;
@@ -855,7 +907,10 @@ export default function BirthdayCake() {
       group.lookAt(0, group.position.y, 0); // orient radially
       cakeGroup.add(group);
       candleUpdaters.push(update);
+      console.log(`Candle ${i} created at position:`, cx, layer3.position.y + topHeight / 2 + 0.02, cz);
     }
+    
+    console.log(`Total candles created: ${candleUpdaters.length}`);
 
     // Decorative elegance: borders, bands, swags, and drips (simplified on mobile)
     // Bead borders (top and bottom of each layer) - reduced count on mobile
@@ -1063,7 +1118,15 @@ export default function BirthdayCake() {
       renderer.setSize(clientWidth, clientHeight, false);
       camera.aspect = Math.max(0.0001, clientWidth / Math.max(1, clientHeight));
       camera.updateProjectionMatrix();
-      frameCake(1.25, true); // Pass true for initial camera animation
+      
+      // Ensure we have a cake to frame before starting camera animation
+      if (cakeGroup.children.length > 0) {
+        frameCake(1.25, true); // Pass true for initial camera animation
+      } else {
+        // If cake isn't ready yet, just set a default camera position
+        camera.position.set(0, 1.5, 4);
+        camera.lookAt(0, 1, 0);
+      }
     };
     initialLayout();
 
@@ -1072,7 +1135,7 @@ export default function BirthdayCake() {
     let raf = 0;
     const renderLoop = () => {
       const t = clock.getElapsedTime();
-      candleUpdaters.forEach((u) => u(t));
+      candleUpdaters.forEach((u) => u(t, candlesLit));
       controls.update();
       renderer.render(scene, camera);
       raf = requestAnimationFrame(renderLoop);
@@ -1103,23 +1166,117 @@ export default function BirthdayCake() {
         }
       });
     };
-  }, []);
+  }, [candlesLit]);
 
   return (
-    <div
-      ref={containerRef}
-      style={{
-        width: "100%",
-        height: "100%",
-        position: "absolute",
-        inset: 0,
-        touchAction: "manipulation", // Improve touch response
-        userSelect: "none", // Prevent text selection
-        WebkitUserSelect: "none", // Prevent text selection on iOS
-        overflow: "hidden", // Prevent scrolling
-      }}
-      aria-label="Interactive 3D birthday cake"
-      role="img"
-    />
+    <>
+      <div
+        ref={containerRef}
+        style={{
+          width: "100%",
+          height: "100%",
+          position: "absolute",
+          inset: 0,
+          touchAction: "manipulation", // Improve touch response
+          userSelect: "none", // Prevent text selection
+          WebkitUserSelect: "none", // Prevent text selection on iOS
+          overflow: "hidden", // Prevent scrolling
+        }}
+        aria-label="Interactive 3D birthday cake"
+        role="img"
+      />
+
+      {/* Blow Detection UI */}
+      {!permissionGranted && (
+        <div
+          style={{
+            position: "absolute",
+            top: "20px",
+            right: "20px",
+            zIndex: 100,
+            background: "rgba(0, 0, 0, 0.8)",
+            color: "white",
+            padding: "12px 16px",
+            borderRadius: "25px",
+            fontSize: "14px",
+            fontFamily: "Inter, sans-serif",
+            cursor: "pointer",
+            border: "2px solid rgba(255, 215, 0, 0.6)",
+            boxShadow: "0 4px 15px rgba(0, 0, 0, 0.3)",
+            backdropFilter: "blur(10px)",
+            transition: "all 0.3s ease",
+          }}
+          onClick={async () => {
+            const granted = await requestPermission();
+            if (granted) {
+              startListening();
+            }
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(255, 215, 0, 0.2)";
+            e.currentTarget.style.borderColor = "rgba(255, 215, 0, 0.8)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "rgba(0, 0, 0, 0.8)";
+            e.currentTarget.style.borderColor = "rgba(255, 215, 0, 0.6)";
+          }}
+        >
+          🎤 Enable Blow Detection
+        </div>
+      )}
+
+      {permissionGranted && (
+        <div
+          style={{
+            position: "absolute",
+            top: "20px",
+            right: "20px",
+            zIndex: 100,
+            background: isCalibrating 
+              ? "rgba(255, 165, 0, 0.8)" 
+              : !candlesLit 
+                ? "rgba(100, 0, 100, 0.8)"
+                : "rgba(0, 100, 0, 0.8)",
+            color: "white",
+            padding: "12px 16px",
+            borderRadius: "25px",
+            fontSize: "14px",
+            fontFamily: "Inter, sans-serif",
+            border: `2px solid ${
+              isCalibrating 
+                ? "rgba(255, 165, 0, 0.6)" 
+                : !candlesLit 
+                  ? "rgba(100, 0, 100, 0.6)"
+                  : "rgba(0, 255, 0, 0.6)"
+            }`,
+            boxShadow: "0 4px 15px rgba(0, 0, 0, 0.3)",
+            backdropFilter: "blur(10px)",
+            animation: candlesLit && !isCalibrating ? "pulse 2s infinite" : "none",
+            cursor: !candlesLit ? "pointer" : "default",
+          }}
+          onClick={!candlesLit ? () => {
+            console.log('🎤 Restarting blow detection...');
+            startListening();
+          } : undefined}
+        >
+          {isCalibrating 
+            ? "🎤 Calibrating microphone..." 
+            : !candlesLit
+              ? "🎤 Click to blow again!"
+              : "� Blow on the candles!"
+          }
+        </div>
+      )}
+
+      {/* CSS animations */}
+      <style>
+        {`
+          @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
+          }
+        `}
+      </style>
+    </>
   );
 }
