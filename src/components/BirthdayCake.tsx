@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { useBlowDetection } from "../hooks/useBlowDetection";
+import BirthdayCard from "./BirthdayCard";
 // Text rendering removed per request; imports for FontLoader/TextGeometry have been deleted.
 
 // Utility: create a soft radial sprite texture (for candle flame/glow)
@@ -546,6 +547,7 @@ function createSprinkles({
 export default function BirthdayCake() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [candlesLit, setCandlesLit] = useState(true);
+  const [showBirthdayCard, setShowBirthdayCard] = useState(false);
   
   // Blow detection hook
   const { isBlowing, isCalibrating, startListening, stopListening, permissionGranted, requestPermission } = useBlowDetection();
@@ -560,6 +562,11 @@ export default function BirthdayCake() {
       // Stop listening to microphone after successful blow
       console.log('🎤 Stopping microphone listening...');
       stopListening();
+      
+      // Show birthday card after a short delay
+      setTimeout(() => {
+        setShowBirthdayCard(true);
+      }, 1500);
       
       // Relight candles after 5 seconds
       setTimeout(() => {
@@ -1277,6 +1284,12 @@ export default function BirthdayCake() {
           }
         `}
       </style>
+
+      {/* Birthday Card */}
+      <BirthdayCard 
+        isVisible={showBirthdayCard} 
+        onClose={() => setShowBirthdayCard(false)} 
+      />
     </>
   );
 }
