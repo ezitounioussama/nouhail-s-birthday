@@ -273,10 +273,12 @@ function makeTopperTexture({
   size = 1024,
   textTop = "Happy",
   textBottom = "Birthday",
+  textEnd = "",
 }: {
   size?: number;
   textTop: string;
   textBottom: string;
+  textEnd?: string;
 }) {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
@@ -309,7 +311,7 @@ function makeTopperTexture({
 
   // Text with slight emboss
   const topSize = Math.floor(size * 0.12);
-  const bottomSize = Math.floor(size * 0.14);
+  const bottomSize = Math.floor(size * 0.11);
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.shadowColor = "rgba(0,0,0,0.4)";
@@ -319,13 +321,22 @@ function makeTopperTexture({
   ctx.strokeStyle = "rgba(0,0,0,0.25)";
   ctx.lineWidth = Math.max(2, size * 0.006);
 
+  // Top text ("Happy")
   ctx.font = `${Math.max(12, topSize)}px serif`;
-  ctx.strokeText(textTop, cx, cy - size * 0.06);
-  ctx.fillText(textTop, cx, cy - size * 0.06);
+  ctx.strokeText(textTop, cx, cy - size * 0.12);
+  ctx.fillText(textTop, cx, cy - size * 0.12);
 
+  // Middle text ("Birthday")
   ctx.font = `italic ${Math.max(12, bottomSize)}px serif`;
-  ctx.strokeText(textBottom, cx, cy + size * 0.035);
-  ctx.fillText(textBottom, cx, cy + size * 0.035);
+  ctx.strokeText(textBottom, cx, cy - size * 0.02);
+  ctx.fillText(textBottom, cx, cy - size * 0.02);
+
+  // Bottom text ("Darling!" if provided)
+  if (textEnd) {
+    ctx.font = `italic ${Math.max(12, bottomSize)}px serif`;
+    ctx.strokeText(textEnd, cx, cy + size * 0.08);
+    ctx.fillText(textEnd, cx, cy + size * 0.08);
+  }
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.anisotropy = 8;
@@ -337,16 +348,18 @@ function makeTopperTexture({
 function createTextTopper({
   textTop = "Happy",
   textBottom = "Birthday",
+  textEnd = "",
   radius = 0.22,
   y = 0,
 }: {
   textTop?: string;
   textBottom?: string;
+  textEnd?: string;
   radius?: number;
   y?: number;
 }) {
   const group = new THREE.Group();
-  const tex = makeTopperTexture({ textTop, textBottom, size: 1024 });
+  const tex = makeTopperTexture({ textTop, textBottom, textEnd, size: 1024 });
   const geo = new THREE.CircleGeometry(radius, 64);
   const mat = new THREE.MeshStandardMaterial({
     map: tex,
@@ -547,17 +560,13 @@ export default function BirthdayCake() {
     controls.maxPolarAngle = Math.PI * 0.495;
 
     // Helpers to frame the cake responsively
-    const frameCake = (padding = 1.25) => {
+    const frameCake = (padding = 1.25, isInitial = false) => {
       // Compute bounds
       const box = new THREE.Box3().setFromObject(cakeGroup);
       const size = new THREE.Vector3();
       const center = new THREE.Vector3();
       box.getSize(size);
       box.getCenter(center);
-
-      // Choose a pleasant view angle (45° azimuth, ~25° elevation)
-      const azimuth = Math.PI / 4;
-      const elevation = Math.PI / 7.2; // ~25°
 
       // For perspective cameras, ensure both height and width fit
       const vFov = THREE.MathUtils.degToRad(camera.fov);
@@ -568,15 +577,64 @@ export default function BirthdayCake() {
       const distForHeight = halfHeight / Math.tan(vFov / 2);
       const distForWidth = halfWidth / (Math.tan(vFov / 2) * aspect);
       const radius = Math.max(distForHeight, distForWidth);
-
-      // Position camera on orbit around center
       const r = Math.max(1.0, radius);
-      const y = center.y + r * Math.sin(elevation);
-      const x = center.x + r * Math.cos(elevation) * Math.cos(azimuth);
-      const z = center.z + r * Math.cos(elevation) * Math.sin(azimuth);
-      camera.position.set(x, y, z);
-      controls.target.copy(center);
-      controls.update();
+
+      if (isInitial) {
+        // Start with a screen-like front view
+        camera.position.set(0, center.y, r * 1.2);
+        controls.target.copy(center);
+        controls.update();
+
+        // Animate to the elegant angled view
+        const targetAzimuth = Math.PI / 4; // 45°
+        const targetElevation = Math.PI / 7.2; // ~25°
+        const targetY = center.y + r * Math.sin(targetElevation);
+        const targetX =
+          center.x + r * Math.cos(targetElevation) * Math.cos(targetAzimuth);
+        const targetZ =
+          center.z + r * Math.cos(targetElevation) * Math.sin(targetAzimuth);
+
+        // Smooth camera transition using GSAP-like easing
+        const startPos = camera.position.clone();
+        const startTime = performance.now();
+        const duration = 2500; // 2.5 seconds
+
+        const animateCamera = () => {
+          const elapsed = performance.now() - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+
+          // Smooth easing function (ease-out-cubic)
+          const eased = 1 - Math.pow(1 - progress, 3);
+
+          // Interpolate position
+          camera.position.lerpVectors(
+            startPos,
+            new THREE.Vector3(targetX, targetY, targetZ),
+            eased
+          );
+
+          controls.update();
+
+          if (progress < 1) {
+            requestAnimationFrame(animateCamera);
+          }
+        };
+
+        // Start the animation after a brief delay
+        setTimeout(animateCamera, 300);
+      } else {
+        // Choose a pleasant view angle (45° azimuth, ~25° elevation)
+        const azimuth = Math.PI / 4;
+        const elevation = Math.PI / 7.2; // ~25°
+
+        // Position camera on orbit around center
+        const y = center.y + r * Math.sin(elevation);
+        const x = center.x + r * Math.cos(elevation) * Math.cos(azimuth);
+        const z = center.z + r * Math.cos(elevation) * Math.sin(azimuth);
+        camera.position.set(x, y, z);
+        controls.target.copy(center);
+        controls.update();
+      }
 
       // Update control distances around computed radius
       controls.minDistance = r * 0.6;
@@ -926,7 +984,8 @@ export default function BirthdayCake() {
     // Central topper with elegant text on top layer
     const topper = createTextTopper({
       textTop: "Happy",
-      textBottom: "Birthday Darling",
+      textBottom: "Birthday",
+      textEnd: "Darling!",
       radius: topRadius * 0.42,
       y: layer3.position.y + topHeight / 2 + 0.004,
     });
@@ -938,7 +997,7 @@ export default function BirthdayCake() {
       renderer.setSize(clientWidth, clientHeight, false);
       camera.aspect = Math.max(0.0001, clientWidth / Math.max(1, clientHeight));
       camera.updateProjectionMatrix();
-      frameCake();
+      frameCake(1.25, true); // Pass true for initial camera animation
     };
     initialLayout();
 
