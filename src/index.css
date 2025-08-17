@@ -9,8 +9,73 @@ body,
   height: 100%;
   /* Solid peach background close to the reference screenshot */
   background: #eec1a6;
+  /* Prevent scrolling and zooming on mobile */
+  overflow: hidden;
+  position: fixed;
+  /* Prevent iOS zoom on input/button focus */
+  -webkit-text-size-adjust: 100%;
+  /* Disable pull-to-refresh on mobile */
+  overscroll-behavior: none;
 }
 
 * {
   box-sizing: border-box;
+  /* Improve touch performance on mobile */
+  -webkit-tap-highlight-color: transparent;
+  /* Prevent text selection on mobile */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Mobile-specific fixes */
+@media screen and (max-width: 768px) {
+  html {
+    /* Prevent iOS Safari from adding margin */
+    margin: 0;
+    padding: 0;
+    /* Lock viewport to prevent accidental zoom */
+    touch-action: manipulation;
+  }
+
+  body {
+    /* iOS Safari safe area support */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* Ensure canvas elements are responsive */
+canvas {
+  display: block;
+  /* Prevent canvas from creating scrollbars on mobile */
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* Fix for mobile button interactions */
+button {
+  /* Better touch target size for mobile */
+  min-height: 44px;
+  min-width: 44px;
+  /* Prevent iOS button styling */
+  -webkit-appearance: none;
+  appearance: none;
+  /* Improve touch responsiveness */
+  touch-action: manipulation;
+}
+
+/* Prevent scrolling issues on mobile browsers */
+html,
+body {
+  /* Disable scroll bounce on iOS */
+  -webkit-overflow-scrolling: auto;
+  /* Prevent horizontal scroll */
+  overflow-x: hidden;
+  /* Lock the viewport height on mobile */
+  height: 100vh;
+  height: 100dvh; /* Dynamic viewport height for modern browsers */
 }

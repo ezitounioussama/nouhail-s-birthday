@@ -30,7 +30,14 @@ export default function ModelHero() {
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
-    const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 200);
+    // Mobile-responsive camera field of view
+    const isMobile =
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      );
+    const cameraFOV = isMobile ? 40 : 50; // Narrower FOV on mobile makes objects appear smaller
+
+    const camera = new THREE.PerspectiveCamera(cameraFOV, 1, 0.1, 200);
     camera.position.set(0, 0.5, 4);
     scene.add(camera);
 
@@ -132,8 +139,29 @@ export default function ModelHero() {
       const box = new THREE.Box3().setFromObject(obj);
       const sphere = new THREE.Sphere();
       box.getBoundingSphere(sphere);
-      const fov = (camera.fov * Math.PI) / 180;
-      const dist = (sphere.radius * 1.28) / Math.tan(fov / 2); // closer for bigger view
+      const fov = (camera.fov * Math.PI) / 180; // This will now use the mobile-responsive FOV
+
+      // Mobile detection and responsive scaling
+      const isMobileDevice =
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        );
+      const isNarrowScreen = Math.min(w, h) < 768;
+
+      // Adjust distance multiplier based on device type and screen size
+      let distanceMultiplier = 1.28; // Default desktop value
+
+      if (isMobileDevice || isNarrowScreen) {
+        // On mobile/narrow screens, move camera further back to make models appear smaller
+        distanceMultiplier = 1.8; // Increased from 1.28 to 1.8 for smaller appearance
+
+        // For very small screens, increase even more
+        if (Math.min(w, h) < 500) {
+          distanceMultiplier = 2.2;
+        }
+      }
+
+      const dist = (sphere.radius * distanceMultiplier) / Math.tan(fov / 2);
       camera.position.set(
         sphere.center.x,
         sphere.center.y + sphere.radius * 0.2,
@@ -190,7 +218,15 @@ export default function ModelHero() {
         const finalScale =
           (isFinite(explicitScale) && explicitScale > 0 ? explicitScale : 1) *
           unitScale;
-        base.scale.setScalar(finalScale);
+
+        // Apply additional mobile scaling to make models smaller on mobile
+        const isMobileDevice =
+          /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+            navigator.userAgent
+          );
+        const mobileScaleFactor = isMobileDevice ? 0.8 : 1.0; // Make models 20% smaller on mobile
+
+        base.scale.setScalar(finalScale * mobileScaleFactor);
         // Place on ground: center XZ, align minY to 0
         base.position.x -= center.x;
         base.position.z -= center.z;

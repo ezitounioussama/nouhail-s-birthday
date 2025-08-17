@@ -41,10 +41,11 @@ function App() {
       <div
         style={{
           width: "100vw",
-          height: "100svh",
-          maxHeight: "100dvh",
+          height: "100vh",
+          maxHeight: "100dvh", // Dynamic viewport height for mobile
           position: "relative",
           overflow: "hidden",
+          touchAction: "manipulation", // Improve touch responsiveness
         }}
       >
         {/* Landing Page */}
@@ -70,11 +71,12 @@ function App() {
             <div
               style={{
                 position: "absolute",
-                top: "5%",
+                top: "clamp(3%, 8vh, 10%)", // Responsive top positioning
                 left: 0,
                 right: 0,
                 zIndex: 10,
-                height: "25%",
+                height: "clamp(20%, 25vh, 30%)", // Responsive height
+                minHeight: "120px", // Ensure minimum readable size
               }}
             >
               <CurvedLoop
@@ -94,8 +96,8 @@ function App() {
               style={{
                 position: "absolute",
                 bottom: "15%",
-                left: 0,
-                right: 0,
+                left: "5%", // Add side margins for mobile
+                right: "5%", // Add side margins for mobile
                 display: "flex",
                 justifyContent: "center",
                 zIndex: 10,
@@ -125,8 +127,8 @@ function App() {
                 }}
                 onClick={() => setShowCake(true)}
                 style={{
-                  padding: "1rem 2.5rem",
-                  fontSize: "1.4rem",
+                  padding: "1.2rem 2.5rem", // Larger padding for mobile
+                  fontSize: "clamp(1.1rem, 4vw, 1.4rem)", // Responsive font size
                   fontWeight: 700,
                   fontFamily: "'Comic Sans MS', cursive, sans-serif",
                   border: "none",
@@ -139,6 +141,11 @@ function App() {
                   position: "relative",
                   overflow: "hidden",
                   textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
+                  minHeight: "60px", // Ensure good touch target
+                  minWidth: "200px", // Ensure good touch target
+                  touchAction: "manipulation", // Improve touch response
+                  maxWidth: "90vw", // Prevent overflow on small screens
+                  textAlign: "center",
                 }}
               >
                 <motion.span

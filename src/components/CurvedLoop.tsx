@@ -38,6 +38,12 @@ const CurvedLoop = ({
   const dirRef = useRef(direction);
   const velRef = useRef(0);
 
+  // Mobile detection for touch optimization
+  const isMobile =
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    );
+
   const textLength = spacing;
   const totalText = textLength
     ? Array(Math.ceil(1800 / textLength) + 2)
@@ -141,10 +147,11 @@ const CurvedLoop = ({
           overflow: "visible",
           display: "block",
           aspectRatio: "100/12",
-          fontSize: "4rem",
+          fontSize: isMobile ? "clamp(2.5rem, 8vw, 4rem)" : "4rem", // Responsive font size
           fontWeight: "bold",
           textTransform: "uppercase",
           lineHeight: "1",
+          touchAction: "manipulation", // Improve touch response
         }}
         viewBox="0 0 1440 120"
       >

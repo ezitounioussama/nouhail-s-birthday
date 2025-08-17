@@ -536,16 +536,33 @@ export default function BirthdayCake() {
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0e0f13);
 
+    // Mobile detection for performance optimizations
+    const isMobile =
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      );
+
     // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    const renderer = new THREE.WebGLRenderer({
+      antialias: !isMobile, // Disable antialiasing on mobile for better performance
+      alpha: false,
+      powerPreference: "high-performance",
+      stencil: false,
+      depth: true,
+    });
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
-    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.enabled = !isMobile; // Disable shadows on mobile for performance
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
     const computeDPR = () => {
       const isNarrow = Math.min(window.innerWidth, window.innerHeight) < 768;
-      return Math.min(window.devicePixelRatio || 1, isNarrow ? 1.75 : 2);
+      // Lower DPR on mobile for better performance
+      return Math.min(
+        window.devicePixelRatio || 1,
+        isMobile ? 1.5 : isNarrow ? 1.75 : 2
+      );
     };
     renderer.setPixelRatio(computeDPR());
     el.appendChild(renderer.domElement);
@@ -558,6 +575,23 @@ export default function BirthdayCake() {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.maxPolarAngle = Math.PI * 0.495;
+
+    // Mobile-specific control optimizations
+    if (isMobile) {
+      controls.enablePan = true; // Allow panning on mobile
+      controls.panSpeed = 0.8; // Slower pan speed for better control
+      controls.rotateSpeed = 0.5; // Slower rotation for better control
+      controls.zoomSpeed = 0.8; // Slower zoom for better control
+      controls.dampingFactor = 0.1; // More damping for smoother feel
+      controls.touches = {
+        ONE: THREE.TOUCH.ROTATE,
+        TWO: THREE.TOUCH.DOLLY_PAN,
+      };
+    } else {
+      controls.rotateSpeed = 0.8;
+      controls.zoomSpeed = 1.0;
+      controls.dampingFactor = 0.05;
+    }
 
     // Helpers to frame the cake responsively
     const frameCake = (padding = 1.25, isInitial = false) => {
@@ -648,12 +682,34 @@ export default function BirthdayCake() {
       renderer.setSize(clientWidth, clientHeight, false);
       camera.aspect = Math.max(0.0001, clientWidth / Math.max(1, clientHeight));
       camera.updateProjectionMatrix();
-      // Reduce shadow map on small screens for perf
-      const small = Math.min(clientWidth, clientHeight) < 700;
-      dirLight.shadow.mapSize.set(small ? 1024 : 2048, small ? 1024 : 2048);
+
+      // Mobile-specific optimizations
+      if (isMobile) {
+        // Adjust shadow quality based on screen size for mobile
+        const verySmall = Math.min(clientWidth, clientHeight) < 500;
+        if (!renderer.shadowMap.enabled) {
+          // Shadows are disabled on mobile, but still set map size for consistency
+          dirLight.shadow.mapSize.set(
+            verySmall ? 512 : 1024,
+            verySmall ? 512 : 1024
+          );
+        }
+      } else {
+        // Desktop shadow quality
+        const small = Math.min(clientWidth, clientHeight) < 700;
+        dirLight.shadow.mapSize.set(small ? 1024 : 2048, small ? 1024 : 2048);
+      }
+
       frameCake();
     };
     window.addEventListener("resize", resize);
+
+    // Handle mobile orientation changes
+    if (isMobile) {
+      window.addEventListener("orientationchange", () => {
+        setTimeout(resize, 100); // Small delay to ensure viewport has updated
+      });
+    }
 
     // Ground
     const groundGeo = new THREE.PlaneGeometry(10, 10);
@@ -669,15 +725,24 @@ export default function BirthdayCake() {
     scene.add(ground);
 
     // Key light
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.4);
+    const dirLight = new THREE.DirectionalLight(0xffffff, isMobile ? 1.2 : 1.4);
     dirLight.position.set(2.5, 4.0, 2.5);
-    dirLight.castShadow = true;
-    dirLight.shadow.mapSize.set(2048, 2048);
-    dirLight.shadow.radius = 4;
+    dirLight.castShadow = !isMobile; // Disable shadows on mobile
+    if (!isMobile) {
+      dirLight.shadow.mapSize.set(2048, 2048);
+      dirLight.shadow.radius = 4;
+    }
     scene.add(dirLight);
 
-    // Fill and rim lights for a modern look
-    const fill = new THREE.SpotLight(0x88aaff, 0.3, 12, Math.PI / 6, 0.4, 1.2);
+    // Fill and rim lights for a modern look (simplified on mobile)
+    const fill = new THREE.SpotLight(
+      0x88aaff,
+      isMobile ? 0.2 : 0.3,
+      12,
+      Math.PI / 6,
+      0.4,
+      1.2
+    );
     fill.position.set(-4, 2.5, -1.5);
     fill.target.position.set(0, 0.6, 0);
     fill.castShadow = false;
@@ -769,16 +834,16 @@ export default function BirthdayCake() {
       )
     );
 
-    // Sprinkles on top layer
+    // Sprinkles on top layer (reduced count on mobile)
     const sprinkles = createSprinkles({
       radius: topRadius * 0.95,
       y: layer3.position.y + topHeight / 2,
-      count: 120,
+      count: isMobile ? 80 : 120,
     });
     cakeGroup.add(sprinkles);
 
-    // Candles evenly placed on the top
-    const candleCount = 8;
+    // Candles evenly placed on the top (reduced count on mobile)
+    const candleCount = isMobile ? 6 : 8;
     const candleRadius = topRadius * 0.75;
     const candleUpdaters: Array<(t: number) => void> = [];
     for (let i = 0; i < candleCount; i++) {
@@ -792,14 +857,15 @@ export default function BirthdayCake() {
       candleUpdaters.push(update);
     }
 
-    // Decorative elegance: borders, bands, swags, and drips
-    // Bead borders (top and bottom of each layer)
+    // Decorative elegance: borders, bands, swags, and drips (simplified on mobile)
+    // Bead borders (top and bottom of each layer) - reduced count on mobile
+    const beadCount = isMobile ? 48 : 72;
     cakeGroup.add(
       createBeadBorder({
         radius: baseRadius * 1.01,
         y: layer1.position.y + baseHeight / 2 + 0.005,
         beadRadius: 0.02,
-        count: 72,
+        count: beadCount,
       })
     );
     cakeGroup.add(
@@ -807,7 +873,7 @@ export default function BirthdayCake() {
         radius: baseRadius * 1.01,
         y: layer1.position.y - baseHeight / 2 - 0.005,
         beadRadius: 0.02,
-        count: 72,
+        count: beadCount,
       })
     );
     cakeGroup.add(
@@ -815,7 +881,7 @@ export default function BirthdayCake() {
         radius: midRadius * 1.01,
         y: layer2.position.y + midHeight / 2 + 0.005,
         beadRadius: 0.018,
-        count: 64,
+        count: isMobile ? 40 : 64,
       })
     );
     cakeGroup.add(
@@ -823,7 +889,7 @@ export default function BirthdayCake() {
         radius: midRadius * 1.01,
         y: layer2.position.y - midHeight / 2 - 0.005,
         beadRadius: 0.018,
-        count: 64,
+        count: isMobile ? 40 : 64,
       })
     );
     cakeGroup.add(
@@ -831,7 +897,7 @@ export default function BirthdayCake() {
         radius: topRadius * 1.01,
         y: layer3.position.y + topHeight / 2 + 0.005,
         beadRadius: 0.016,
-        count: 56,
+        count: isMobile ? 32 : 56,
       })
     );
 
@@ -846,12 +912,12 @@ export default function BirthdayCake() {
       createGoldBand(topRadius * 1.005, layer3.position.y + 0.012, 0.0045)
     );
 
-    // Icing swags on base and mid layers
+    // Icing swags on base and mid layers (simplified on mobile)
     cakeGroup.add(
       createIcingSwags({
         radius: baseRadius * 0.98,
         y: layer1.position.y + baseHeight * 0.15,
-        segments: 12,
+        segments: isMobile ? 8 : 12,
         sag: 0.06,
         tubeRadius: 0.012,
       })
@@ -860,20 +926,20 @@ export default function BirthdayCake() {
       createIcingSwags({
         radius: midRadius * 0.98,
         y: layer2.position.y + midHeight * 0.12,
-        segments: 10,
+        segments: isMobile ? 6 : 10,
         sag: 0.055,
         tubeRadius: 0.011,
       })
     );
 
-    // Drip icing around top rim
+    // Drip icing around top rim (reduced count on mobile)
     cakeGroup.add(
       createDripIcingRing({
         radius: topRadius * 0.99,
         yTop: layer3.position.y + topHeight / 2 + 0.002,
         avgLength: 0.085,
         variance: 0.04,
-        count: 52,
+        count: isMobile ? 32 : 52,
         capsuleRadius: 0.008,
       })
     );
@@ -961,23 +1027,23 @@ export default function BirthdayCake() {
       }
     }
 
-    // Place tasteful rings of flowers
+    // Place tasteful rings of flowers (reduced count on mobile)
     addFlowerRing({
       radius: topRadius * 0.52,
       y: layer3.position.y + topHeight / 2,
-      count: 6,
+      count: isMobile ? 4 : 6,
       scale: 1.0,
     });
     addFlowerRing({
       radius: midRadius * 0.65,
       y: layer2.position.y + midHeight / 2,
-      count: 8,
+      count: isMobile ? 6 : 8,
       scale: 1.05,
     });
     addFlowerRing({
       radius: baseRadius * 0.75,
       y: layer1.position.y + baseHeight / 2,
-      count: 10,
+      count: isMobile ? 7 : 10,
       scale: 1.1,
     });
 
@@ -1042,7 +1108,16 @@ export default function BirthdayCake() {
   return (
     <div
       ref={containerRef}
-      style={{ width: "100%", height: "100%", position: "absolute", inset: 0 }}
+      style={{
+        width: "100%",
+        height: "100%",
+        position: "absolute",
+        inset: 0,
+        touchAction: "manipulation", // Improve touch response
+        userSelect: "none", // Prevent text selection
+        WebkitUserSelect: "none", // Prevent text selection on iOS
+        overflow: "hidden", // Prevent scrolling
+      }}
       aria-label="Interactive 3D birthday cake"
       role="img"
     />
