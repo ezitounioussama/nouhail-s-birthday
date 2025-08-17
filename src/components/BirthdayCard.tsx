@@ -1,12 +1,15 @@
-import { useRef, useEffect, useState } from 'react';
-import * as THREE from 'three';
+import { useRef, useEffect, useState } from "react";
+import * as THREE from "three";
 
 interface BirthdayCardProps {
   isVisible: boolean;
   onClose: () => void;
 }
 
-export default function BirthdayCard({ isVisible, onClose }: BirthdayCardProps) {
+export default function BirthdayCard({
+  isVisible,
+  onClose,
+}: BirthdayCardProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -62,7 +65,11 @@ With love and best wishes 💝`;
     const cardHeight = 3;
     const cardDepth = 0.1;
 
-    const cardGeometry = new THREE.BoxGeometry(cardWidth, cardHeight, cardDepth);
+    const cardGeometry = new THREE.BoxGeometry(
+      cardWidth,
+      cardHeight,
+      cardDepth
+    );
 
     // Card material with gradient-like effect
     const cardMaterial = new THREE.MeshLambertMaterial({
@@ -80,7 +87,7 @@ With love and best wishes 💝`;
     const borderGeometry = new THREE.EdgesGeometry(cardGeometry);
     const borderMaterial = new THREE.LineBasicMaterial({
       color: 0xff69b4,
-      linewidth: 3
+      linewidth: 3,
     });
     const border = new THREE.LineSegments(borderGeometry, borderMaterial);
     scene.add(border);
@@ -161,8 +168,8 @@ With love and best wishes 💝`;
       colors[i + 2] = color.b;
     }
 
-    particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    particles.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    particles.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    particles.setAttribute("color", new THREE.BufferAttribute(colors, 3));
 
     const particleMaterial = new THREE.PointsMaterial({
       size: 0.05,
@@ -194,7 +201,8 @@ With love and best wishes 💝`;
       });
 
       // Animate particles
-      const positions = particleSystem.geometry.attributes.position.array as Float32Array;
+      const positions = particleSystem.geometry.attributes.position
+        .array as Float32Array;
       for (let i = 0; i < positions.length; i += 3) {
         positions[i + 1] += Math.sin(time + i) * 0.01;
       }
@@ -223,11 +231,11 @@ With love and best wishes 💝`;
       renderer.setSize(window.innerWidth, window.innerHeight);
     };
 
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
 
     // Cleanup
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener("resize", handleResize);
       cancelAnimationFrame(animationId);
       if (currentMount && renderer.domElement) {
         currentMount.removeChild(renderer.domElement);
@@ -241,27 +249,27 @@ With love and best wishes 💝`;
   return (
     <div
       style={{
-        position: 'fixed',
+        position: "fixed",
         top: 0,
         left: 0,
-        width: '100%',
-        height: '100%',
+        width: "100%",
+        height: "100%",
         zIndex: 1000,
-        background: 'rgba(0, 0, 0, 0.9)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        background: "rgba(0, 0, 0, 0.9)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
       }}
     >
       {/* 3D Scene */}
       <div
         ref={mountRef}
         style={{
-          position: 'absolute',
+          position: "absolute",
           top: 0,
           left: 0,
-          width: '100%',
-          height: '100%',
+          width: "100%",
+          height: "100%",
         }}
       />
 
@@ -269,29 +277,29 @@ With love and best wishes 💝`;
       {showMessage && (
         <div
           style={{
-            position: 'relative',
+            position: "relative",
             zIndex: 1001,
-            background: 'rgba(255, 255, 255, 0.95)',
-            padding: '40px',
-            borderRadius: '20px',
-            maxWidth: '600px',
-            margin: '20px',
-            textAlign: 'center',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-            backdropFilter: 'blur(10px)',
-            border: '2px solid rgba(255, 105, 180, 0.3)',
-            animation: 'fadeInScale 1s ease-out',
+            background: "rgba(255, 255, 255, 0.95)",
+            padding: "40px",
+            borderRadius: "20px",
+            maxWidth: "600px",
+            margin: "20px",
+            textAlign: "center",
+            boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
+            backdropFilter: "blur(10px)",
+            border: "2px solid rgba(255, 105, 180, 0.3)",
+            animation: "fadeInScale 1s ease-out",
           }}
         >
           <pre
             style={{
-              fontFamily: 'Georgia, serif',
-              fontSize: '16px',
-              lineHeight: '1.6',
-              color: '#2c3e50',
+              fontFamily: "Georgia, serif",
+              fontSize: "16px",
+              lineHeight: "1.6",
+              color: "#2c3e50",
               margin: 0,
-              whiteSpace: 'pre-wrap',
-              fontWeight: '400',
+              whiteSpace: "pre-wrap",
+              fontWeight: "400",
             }}
           >
             {birthdayMessage}
@@ -300,25 +308,27 @@ With love and best wishes 💝`;
           <button
             onClick={onClose}
             style={{
-              marginTop: '30px',
-              padding: '15px 30px',
-              background: 'linear-gradient(45deg, #ff69b4, #87ceeb)',
-              border: 'none',
-              borderRadius: '25px',
-              color: 'white',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              boxShadow: '0 8px 20px rgba(255, 105, 180, 0.3)',
-              transition: 'all 0.3s ease',
+              marginTop: "30px",
+              padding: "15px 30px",
+              background: "linear-gradient(45deg, #ff69b4, #87ceeb)",
+              border: "none",
+              borderRadius: "25px",
+              color: "white",
+              fontSize: "16px",
+              fontWeight: "bold",
+              cursor: "pointer",
+              boxShadow: "0 8px 20px rgba(255, 105, 180, 0.3)",
+              transition: "all 0.3s ease",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 12px 25px rgba(255, 105, 180, 0.4)';
+              e.currentTarget.style.transform = "translateY(-2px)";
+              e.currentTarget.style.boxShadow =
+                "0 12px 25px rgba(255, 105, 180, 0.4)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 8px 20px rgba(255, 105, 180, 0.3)';
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow =
+                "0 8px 20px rgba(255, 105, 180, 0.3)";
             }}
           >
             ✨ Back to Celebration ✨

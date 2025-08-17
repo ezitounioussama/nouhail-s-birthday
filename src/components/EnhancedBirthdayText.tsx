@@ -13,7 +13,7 @@ export default function EnhancedBirthdayText({
   const controls = useAnimation();
   const [animationStarted, setAnimationStarted] = useState(false);
 
-  const text = "Happy Birthday Darling";
+  const text = "Happy Birthday Nouhaila";
 
   useEffect(() => {
     if (isInView && !animationStarted) {

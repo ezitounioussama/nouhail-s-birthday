@@ -80,7 +80,7 @@ function App() {
               }}
             >
               <CurvedLoop
-                marqueeText="Happy ✦ Birthday ✦ Darling ✦"
+                marqueeText="Happy ✦ Birthday ✦ Nouhaila ✦"
                 speed={1}
                 curveAmount={300}
                 direction="right"

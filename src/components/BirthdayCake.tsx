@@ -445,7 +445,7 @@ function createCandle({ height = 0.35, radius = 0.04, color = 0xfff1e6 }) {
   const baseIntensity = light.intensity;
   const baseScale = flame.scale.clone();
   let isLit = true;
-  
+
   const update = (t: number, lit: boolean = true) => {
     // Simple blow-out functionality
     if (lit !== isLit) {
@@ -458,7 +458,7 @@ function createCandle({ height = 0.35, radius = 0.04, color = 0xfff1e6 }) {
         light.intensity = baseIntensity;
       }
     }
-    
+
     // Normal flicker animation when lit (original behavior)
     if (isLit) {
       const n = (Math.sin(t * 7 + Math.random() * 100) + 1) * 0.5; // 0..1
@@ -548,29 +548,36 @@ export default function BirthdayCake() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [candlesLit, setCandlesLit] = useState(true);
   const [showBirthdayCard, setShowBirthdayCard] = useState(false);
-  
+
   // Blow detection hook
-  const { isBlowing, isCalibrating, startListening, stopListening, permissionGranted, requestPermission } = useBlowDetection();
+  const {
+    isBlowing,
+    isCalibrating,
+    startListening,
+    stopListening,
+    permissionGranted,
+    requestPermission,
+  } = useBlowDetection();
 
   // Effect to handle blowing on candles
   useEffect(() => {
-    console.log('🕯️ Candle effect triggered:', { isBlowing, candlesLit });
+    console.log("🕯️ Candle effect triggered:", { isBlowing, candlesLit });
     if (isBlowing && candlesLit) {
-      console.log('💨 Blowing detected! Turning off candles...');
+      console.log("💨 Blowing detected! Turning off candles...");
       setCandlesLit(false);
-      
+
       // Stop listening to microphone after successful blow
-      console.log('🎤 Stopping microphone listening...');
+      console.log("🎤 Stopping microphone listening...");
       stopListening();
-      
+
       // Show birthday card after a short delay
       setTimeout(() => {
         setShowBirthdayCard(true);
       }, 1500);
-      
+
       // Relight candles after 5 seconds
       setTimeout(() => {
-        console.log('🔥 Relighting candles...');
+        console.log("🔥 Relighting candles...");
         setCandlesLit(true);
       }, 5000);
     }
@@ -904,7 +911,7 @@ export default function BirthdayCake() {
     const candleRadius = topRadius * 0.75;
     const candleUpdaters: Array<(t: number, lit: boolean) => void> = [];
     console.log(`Creating ${candleCount} candles...`);
-    
+
     for (let i = 0; i < candleCount; i++) {
       const angle = (i / candleCount) * Math.PI * 2;
       const cx = Math.cos(angle) * candleRadius;
@@ -914,9 +921,14 @@ export default function BirthdayCake() {
       group.lookAt(0, group.position.y, 0); // orient radially
       cakeGroup.add(group);
       candleUpdaters.push(update);
-      console.log(`Candle ${i} created at position:`, cx, layer3.position.y + topHeight / 2 + 0.02, cz);
+      console.log(
+        `Candle ${i} created at position:`,
+        cx,
+        layer3.position.y + topHeight / 2 + 0.02,
+        cz
+      );
     }
-    
+
     console.log(`Total candles created: ${candleUpdaters.length}`);
 
     // Decorative elegance: borders, bands, swags, and drips (simplified on mobile)
@@ -1113,7 +1125,7 @@ export default function BirthdayCake() {
     const topper = createTextTopper({
       textTop: "Happy",
       textBottom: "Birthday",
-      textEnd: "Darling!",
+      textEnd: "Nouhaila!",
       radius: topRadius * 0.42,
       y: layer3.position.y + topHeight / 2 + 0.004,
     });
@@ -1125,7 +1137,7 @@ export default function BirthdayCake() {
       renderer.setSize(clientWidth, clientHeight, false);
       camera.aspect = Math.max(0.0001, clientWidth / Math.max(1, clientHeight));
       camera.updateProjectionMatrix();
-      
+
       // Ensure we have a cake to frame before starting camera animation
       if (cakeGroup.children.length > 0) {
         frameCake(1.25, true); // Pass true for initial camera animation
@@ -1239,39 +1251,43 @@ export default function BirthdayCake() {
             top: "20px",
             right: "20px",
             zIndex: 100,
-            background: isCalibrating 
-              ? "rgba(255, 165, 0, 0.8)" 
-              : !candlesLit 
-                ? "rgba(100, 0, 100, 0.8)"
-                : "rgba(0, 100, 0, 0.8)",
+            background: isCalibrating
+              ? "rgba(255, 165, 0, 0.8)"
+              : !candlesLit
+              ? "rgba(100, 0, 100, 0.8)"
+              : "rgba(0, 100, 0, 0.8)",
             color: "white",
             padding: "12px 16px",
             borderRadius: "25px",
             fontSize: "14px",
             fontFamily: "Inter, sans-serif",
             border: `2px solid ${
-              isCalibrating 
-                ? "rgba(255, 165, 0, 0.6)" 
-                : !candlesLit 
-                  ? "rgba(100, 0, 100, 0.6)"
-                  : "rgba(0, 255, 0, 0.6)"
+              isCalibrating
+                ? "rgba(255, 165, 0, 0.6)"
+                : !candlesLit
+                ? "rgba(100, 0, 100, 0.6)"
+                : "rgba(0, 255, 0, 0.6)"
             }`,
             boxShadow: "0 4px 15px rgba(0, 0, 0, 0.3)",
             backdropFilter: "blur(10px)",
-            animation: candlesLit && !isCalibrating ? "pulse 2s infinite" : "none",
+            animation:
+              candlesLit && !isCalibrating ? "pulse 2s infinite" : "none",
             cursor: !candlesLit ? "pointer" : "default",
           }}
-          onClick={!candlesLit ? () => {
-            console.log('🎤 Restarting blow detection...');
-            startListening();
-          } : undefined}
-        >
-          {isCalibrating 
-            ? "🎤 Calibrating microphone..." 
-            : !candlesLit
-              ? "🎤 Click to blow again!"
-              : "� Blow on the candles!"
+          onClick={
+            !candlesLit
+              ? () => {
+                  console.log("🎤 Restarting blow detection...");
+                  startListening();
+                }
+              : undefined
           }
+        >
+          {isCalibrating
+            ? "🎤 Calibrating microphone..."
+            : !candlesLit
+            ? "🎤 Click to blow again!"
+            : "� Blow on the candles!"}
         </div>
       )}
 
@@ -1286,9 +1302,9 @@ export default function BirthdayCake() {
       </style>
 
       {/* Birthday Card */}
-      <BirthdayCard 
-        isVisible={showBirthdayCard} 
-        onClose={() => setShowBirthdayCard(false)} 
+      <BirthdayCard
+        isVisible={showBirthdayCard}
+        onClose={() => setShowBirthdayCard(false)}
       />
     </>
   );
